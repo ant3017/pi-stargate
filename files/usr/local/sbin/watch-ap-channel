@@ -1,6 +1,4 @@
 #!/bin/bash
-# Polls wlan0's channel; when it changes, re-syncs the AP channel.
-# Run by watch-ap-channel.timer every 30s.
 STATE=/run/ap-channel
 CHAN=$(iw dev wlan0 info 2>/dev/null | awk '/channel/{print $2; exit}')
 LAST=$(cat "$STATE" 2>/dev/null)
@@ -8,4 +6,6 @@ LAST=$(cat "$STATE" 2>/dev/null)
 [ "$CHAN" = "$LAST" ] && exit 0
 echo "$CHAN" > "$STATE"
 
+# channel changed (or first run) -> sync the AP
 /usr/local/sbin/sync-ap-channel
+

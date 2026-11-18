@@ -1,6 +1,4 @@
 #!/bin/bash
-# networkd-dispatcher hook: fires when wlan0 becomes routable
-# (i.e. associated + DHCP done). Re-sync the AP channel immediately.
 [ "$IFACE" = "wlan0" ] || exit 0
-sleep 3
+sleep 3                          # let association settle
 /usr/local/sbin/sync-ap-channel

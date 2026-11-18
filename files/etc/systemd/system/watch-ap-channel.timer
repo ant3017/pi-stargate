@@ -1,5 +1,7 @@
+
+# .timer
 [Unit]
-Description=Sync ap0 channel to wlan0 (poll)
+Description=Sync ap0 channel to wlan0
 
 [Timer]
 OnBootSec=30
@@ -7,3 +9,4 @@ OnUnitActiveSec=30
 
 [Install]
 WantedBy=timers.target
+

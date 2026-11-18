@@ -1,6 +1,8 @@
+# .service
 [Unit]
 Description=Sync ap0 hostapd channel to wlan0's channel
 
 [Service]
 Type=oneshot
 ExecStart=/usr/local/sbin/watch-ap-channel
+
