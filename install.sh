@@ -31,6 +31,7 @@ inst() { # <relpath> <mode>
 inst etc/netplan/60-wifi.yaml                                  600
 inst etc/hostapd/hostapd.conf                                  644
 inst etc/default/hostapd                                       644
+inst etc/systemd/system/hostapd.service.d/override.conf        644
 inst etc/dnsmasq.d/ap0.conf                                    644
 inst etc/systemd/system/ap0.service                            644
 inst etc/systemd/system/watch-ap-channel.service               644

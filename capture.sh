@@ -15,6 +15,7 @@ FILES="
 etc/netplan/60-wifi.yaml
 etc/hostapd/hostapd.conf
 etc/default/hostapd
+etc/systemd/system/hostapd.service.d/override.conf
 etc/dnsmasq.d/ap0.conf
 etc/systemd/system/ap0.service
 etc/systemd/system/watch-ap-channel.service
