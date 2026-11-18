@@ -2,7 +2,12 @@
 # stargate tunnel
 
 
-# The System
+## The raspberry
+Revision	: b03115
+Model		: Raspberry Pi 4 Model B Rev 1.5
+
+## The System
+
 cat /etc/os-release
 ```
 PRETTY_NAME="Debian GNU/Linux 12 (bookworm)"
