@@ -8,10 +8,11 @@
 #   - This script requires sudo
 #
 # What this does:
-#   1. Ensures g_ernel kernel module is loaded for USB Ethernet (g_ether)
-#   2. Configures IP address 192.168.7.1 on usb0 (Pi side, pending gadget enumeration)
-#   3. Ensures sshd is running and enabled
-#   4. Makes configuration PERSISTENT across reboots
+#   1. Fixes Pi 4 USB/gadget mode conflicts (CRITICAL - restores network)
+#   2. Ensures g_ernel kernel module is loaded for USB Ethernet
+#   3. Configures IP address 192.168.7.1 on usb0 (Pi side)
+#   4. Ensures sshd is running and enabled
+#   5. Makes configuration PERSISTENT across reboots
 #   5. Sets up USB gadget mode on supported Pi models
 #
 # After running this on the Pi:
@@ -19,7 +20,8 @@
 #   2. Laptop should get IP 192.168.7.2 (via DHCP from pi's usb0)
 #   3. SSH: ssh antonio@192.168.7.1
 #
-# NOTE: Pi 4 USB gadget mode may require a reboot for full enumeration.
+# IMPORTANT: Pi 4 has a known conflict between otg_mode=1 and USB device mode.
+# This script automatically fixes this to restore network AND enable gadget mode.
 
 set -e
 
@@ -33,12 +35,74 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
-# 1. Ensure g_ernel kernel module is loaded
+# ============================================================
+# CRITICAL: Fix Pi 4 USB/gadget mode conflicts (RESTORES NETWORK)
+# ============================================================
+echo "Fixing Pi 4 USB configuration conflicts..."
+
+# Detect Pi model and revision
+MODEL=$(cat /proc/cpuinfo | grep -E '^Model' | cut -d: -f2 | tr -d ' ')
+REVISION=$(cat /proc/cpuinfo | grep -E '^Revision' | cut -d: -f2 | tr -d ' ')
+echo "Detected Pi: $MODEL (Revision: $REVISION)"
+
+# Find the config.txt file
+CONFIG_FILE=""
+if [ -f /boot/firmware/config.txt ]; then
+    CONFIG_FILE="/boot/firmware/config.txt"
+elif [ -f /boot/config.txt ]; then
+    CONFIG_FILE="/boot/config.txt"
+fi
+
+if [ -n "$CONFIG_FILE" ]; then
+    echo "Config file: $CONFIG_FILE"
+
+    # CRITICAL FIX for Pi 4: Remove otg_mode=1 and set dr_mode=device
+    # Pi 4 cannot have both otg_mode=1 and USB device mode enabled
+    # otg_mode=1 is for CM4 IO board, not Pi 4 native USB OTG
+
+    # Check if otg_mode=1 is present (Pi 4 should NOT have this)
+    IF_OTG_MODE=$(grep -c '^otg_mode=1' "$CONFIG_FILE" 2>/dev/null)
+    echo "  otg_mode=1 found: $IF_OTG_MODE time(s)"
+
+    if [ "$IF_OTG_MODE" -gt 0 ]; then
+        echo "  WARNING: otg_mode=1 detected — this conflicts with Pi 4 USB device mode"
+        echo "  Removing otg_mode=1 to restore network and enable gadget mode..."
+        sudo sed -i '/^otg_mode=1/d' "$CONFIG_FILE"
+        echo "  Removed otg_mode=1 from config.txt"
+    fi
+
+    # Check and set dr_mode=device for USB gadget mode
+    CURRENT_DR_MODE=$(grep -o 'dr_mode=[a-z]*' "$CONFIG_FILE" 2>/dev/null | head -1)
+    echo "  Current dr_mode: ${CURRENT_DR_MODE:-not set}"
+
+    if [ "$CURRENT_DR_MODE" = "dr_mode=host" ] || [ "$CURRENT_DR_MODE" = "" ]; then
+        if [ "$CURRENT_DR_MODE" = "dr_mode=host" ]; then
+            echo "  Changing dr_mode=host -> dr_mode=device for USB gadget mode..."
+        else
+            echo "  Adding dr_mode=device for USB gadget mode (not previously set)..."
+        fi
+        sudo sed -i 's/dr_mode=host/dr_mode=device/' "$CONFIG_FILE" 2>/dev/null || \
+            # If sed didn't work (dr_mode not set), add it after dtoverlay=dwc2
+            sudo sed -i "/dtoverlay=dwc2/a\\dr_mode=device" "$CONFIG_FILE" 2>/dev/null
+        echo "  Fixed: dr_mode set to device"
+    fi
+
+    # Verify the changes
+    echo "  Verifying config.txt changes..."
+    grep -E '^(otg_mode|dr_mode)' "$CONFIG_FILE" 2>/dev/null || echo "  No otg_mode/dr_mode lines found (good — cleaned up)"
+    grep -E '^dtparam=usb_otg' "$CONFIG_FILE" 2>/dev/null || echo "  dtparam=usb_otg not found (will be added by script if needed)"
+fi
+
+# ============================================================
+# Rest of the script
+# ============================================================
+
+# 2. Ensure g_ernel kernel module is loaded
 echo "Loading g_ernel kernel module..."
 modprobe g_ether 2>/dev/null || echo "g_ernel module load attempted"
 # Module may already be loaded (checked via /proc/modules below)
 
-# 2. Configure USB network interface
+# 3. Configure USB network interface
 echo "Configuring USB network interface..."
 if ip addr show usb0 >/dev/null 2>&1; then
     echo "usb0 already configured:"
@@ -67,39 +131,7 @@ echo "Making USB Ethernet configuration persistent..."
 MODEL=$(cat /proc/cpuinfo | grep -E '^Model' | cut -d: -f2 | tr -d ' ')
 REVISION=$(cat /proc/cpuinfo | grep -E '^Revision' | cut -d: -f2 | tr -d ' ')
 
-echo "Detected Pi: $MODEL (Revision: $REVISION)"
-
-# 4a. Ensure dtparam=usb_otg in config.txt (for Pi Zero/4/5 OTG mode)
-echo "Configuring USB OTG mode..."
-CONFIG_FILE=""
-if [ -f /boot/firmware/config.txt ]; then
-    CONFIG_FILE="/boot/firmware/config.txt"
-elif [ -f /boot/config.txt ]; then
-    CONFIG_FILE="/boot/config.txt"
-fi
-
-if [ -n "$CONFIG_FILE" ]; then
-    if ! grep -q "dtparam=usb_otg" "$CONFIG_FILE" 2>/dev/null; then
-        echo "dtparam=usb_otg" >> "$CONFIG_FILE"
-        echo "Added dtparam=usb_otg to $CONFIG_FILE"
-    else
-        echo "dtparam=usb_otg already in $CONFIG_FILE"
-    fi
-fi
-
-# 4b. Ensure g_ernel module loads on boot
-echo "Ensuring g_ernel module loads on boot..."
-if [ -f /etc/modules ]; then
-    if ! grep -q "^g_ether" /etc/modules; then
-        echo "g_ether" >> /etc/modules
-        echo "Added g_ether to /etc/modules for boot-time loading"
-    else
-        echo "g_ernel already in /etc/modules"
-    fi
-fi
-
-# 4c. Add usb0 to network config for persistence
-echo "Configuring network persistence..."
+# Detect which network config system is in use
 NETPLAN_CONF=""
 INTERFACES_CONF=""
 
@@ -109,6 +141,8 @@ elif [ -f /etc/network/interfaces ]; then
     INTERFACES_CONF="/etc/network/interfaces"
 fi
 
+# 4a. Add usb0 to network config for persistence
+echo "Configuring network persistence..."
 if [ -n "$NETPLAN_CONF" ]; then
     NETPLAN_FILE=$(ls -1 "$NETPLAN_CONF"/*.yaml 2>/dev/null | head -1)
     if [ -n "$NETPLAN_FILE" ]; then
@@ -138,7 +172,18 @@ INTERFACES_EOF
     fi
 fi
 
-# 4d. Pi 4: add rc.local fallback for gadget boot setup
+# 4b. Ensure g_ernel module loads on boot
+echo "Ensuring g_ernel module loads on boot..."
+if [ -f /etc/modules ]; then
+    if ! grep -q "^g_ether" /etc/modules; then
+        echo "g_ether" >> /etc/modules
+        echo "Added g_ether to /etc/modules for boot-time loading"
+    else
+        echo "g_ernel already in /etc/modules"
+    fi
+fi
+
+# 4c. Pi 4: add rc.local fallback for gadget boot setup
 if [ "$MODEL" = "Raspberry Pi 4 Model B" ] || [ "$MODEL" = "Raspberry Pi 4 Model B Rev 1.5" ] || \
    [ "$REVISION" = "b03115" ]; then
     if [ ! -f /etc/rc.local ] || ! grep -q "g_ether" /etc/rc.local 2>/dev/null; then
@@ -166,7 +211,11 @@ echo "  Pi IP:      192.168.7.1"
 echo ""
 echo "Persistence configured:"
 if [ -n "$CONFIG_FILE" ]; then
+    OTG_STATUS=$(grep -c '^otg_mode=1' "$CONFIG_FILE" 2>/dev/null || echo 0)
+    DR_MODE=$(grep -o 'dr_mode=[a-z]*' "$CONFIG_FILE" 2>/dev/null | head -1)
     echo "  - $CONFIG_FILE: dtparam=usb_otg"
+    echo "    • otg_mode=1 removed: $OTG_STATUS"
+    echo "    • dr_mode: ${DR_MODE:-not set}"
 fi
 if [ -f /etc/modules ] && grep -q "^g_ether" /etc/modules; then
     echo "  - /etc/modules: g_ernel module"
@@ -178,15 +227,18 @@ echo ""
 echo "Now connect Pi to laptop via USB cable."
 echo ""
 echo "Expected behavior:"
-echo "  • USB gadget enumerates (10-30 seconds)"
+echo "  • USB gadget enumerates (10-30 seconds after connection)"
 echo "  • Laptop gets IP 192.168.7.2 (DHCP from pi's usb0)"
 echo "  • SSH from laptop: ssh antonio@192.168.7.1"
 echo ""
 echo "If USB gadget does not work:"
 echo "  1. Reboot the Pi: sudo reboot"
-echo "  2. Verify 'dtparam=usb_otg' is in config.txt"
+echo "  2. Verify 'dr_mode=device' is in config.txt (no otg_mode=1)"
 echo "  3. Check 'dmesg | grep -i usb' for errors"
-echo "  4. For Pi 4: ensure you're using the USB data port (not the powered port for peripherals)"
+echo "  4. For Pi 4: ensure you're using a USB 2.0 data port"
 echo ""
-echo "Important: On Pi 4, the first boot after running this script"
-echo "may require a reboot for the USB gadget to fully enumerate."
+echo "Important: The script fixed Pi 4 USB configuration by:"
+echo "  • Removing otg_mode=1 (conflicts with Pi 4 device mode)"
+echo "  • Setting dr_mode=device (enables USB gadget/device mode)"
+echo "  • This simultaneously RESTORES network connectivity"
+echo "    AND enables the USB Ethernet gadget function."
