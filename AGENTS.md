@@ -1,5 +1,5 @@
 
-# stargate tunnel
+# Stargate tunnel
 
 
 ## The raspberry
@@ -41,31 +41,31 @@ Raspberry Pi reference 2024-11-19
 Generated using pi-gen, https://github.com/RPi-Distro/pi-gen, 891df1e21ed2b6099a2e6a13e26c91dea44b34d4, stage2
 ```
 
-## connection
+## Connection
 the raspberry is reachable via
 ```
 ssh antonio@192.168.255.3
 ```
 
 
-## config files
+## Config files
 
 the settings of the raspberry are reflected in the files in this repository
 
-## target behaviour
+## Target behaviour
 
-### uplink
+### Uplink
 the raspberry connects to the internet via eth0 or wifi uplink(wlan0)
 
-### downlink
+### Downlink
 he raspberry creates an ap0 interface for a laptop to connect to it (downlink).
 
 this allows the laptop to connect to the internet via the raspberry. 
 
-## wifi channels sync
+## Wifi channels sync
 there is a service and timer to check that uplink and downlink wifi have same channel and country code (watch-ap-channel). this is a raspberry limitation: in order to use the same wifi card for uplink and downlink concurrently it is necessary to use 2.4 ghz band and same channel and country code in uplink and downlink
 
-## wireguard
+## Wireguard
 
 the raspberry tunnels all data form the laptop through a wireguard interface (wh0)
 
@@ -73,5 +73,5 @@ the raspberry tunnels all data form the laptop through a wireguard interface (wh
 
 the raspberry creates a portal login page where the user connectd to ap0 can elect the uplink SSID to connect to . the details entered are saved for future use
 
-## save and restore configs
+## Save and restore configs
 the files capture.sh and restore.sh are useful to copy the relevant files from the raspberry to this repository and vice versa
