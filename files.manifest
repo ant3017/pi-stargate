@@ -1,3 +1,4 @@
+etc/netplan/50-eth0.yaml 600
 etc/netplan/60-wifi.yaml 600
 etc/hostapd/hostapd.conf 644
 etc/default/hostapd 644
@@ -20,3 +21,5 @@ etc/networkd-dispatcher/routable.d/50-ap-channel 755
 usr/local/sbin/sync-ap-channel 755
 usr/local/sbin/watch-ap-channel 755
 usr/local/sbin/wifi_portal.py 644
+boot/firmware/config.txt 755
+boot/firmware/cmdline.txt 755

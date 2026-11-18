@@ -12,6 +12,7 @@ MANIFEST="$HERE/files.manifest"
 
 # Files tracked by this repo — add new ones here.
 FILES="
+etc/netplan/50-eth0.yaml
 etc/netplan/60-wifi.yaml
 etc/hostapd/hostapd.conf
 etc/default/hostapd
@@ -35,6 +36,8 @@ etc/networkd-dispatcher/routable.d/50-ap-channel
 usr/local/sbin/sync-ap-channel
 usr/local/sbin/watch-ap-channel
 usr/local/sbin/wifi_portal.py
+boot/firmware/config.txt
+boot/firmware/cmdline.txt
 "
 
 : > "$MANIFEST"
