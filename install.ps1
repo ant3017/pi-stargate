@@ -54,8 +54,8 @@ Copy-Item "$Portal\wifi_portal.py" "$Stage\usr\local\sbin\wifi_portal.py"
 
 $subs = @{
     "$Stage\etc\hostapd\hostapd.conf" = @{
-        'ssid=PiBridge'                  = "ssid=$ApSsid"
-        'wpa_passphrase=litfiba25'       = "wpa_passphrase=$ApPassword"
+        'ssid=sg0'                  = "ssid=$ApSsid"
+        'wpa_passphrase=litfiba25!'       = "wpa_passphrase=$ApPassword"
     }
     "$Stage\etc\netplan\60-wifi.yaml" = @{
         'YourRouterSSID'       = $RouterSsid

@@ -2,13 +2,10 @@ network:
   version: 2
   renderer: networkd
   ethernets:
-     eth0:
-        dhcp4: true
-        optional: true
-        dhcp4-overrides:
-          route-metric: 100
-
-    # USB Ethernet over g_ether (auto-added by setup-ssh-via-usb.sh)
-     usb0:
-       addresses: [192.168.7.1/24]
-       dhcp4: no
+    eth0:
+      dhcp4: true
+      optional: true
+    usb0:
+      dhcp4: true
+      link-local: [ ipv4 ]
+      optional: true
