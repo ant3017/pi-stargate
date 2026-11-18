@@ -1,0 +1,9 @@
+[Unit]
+Description=Sync ap0 channel to wlan0 (poll)
+
+[Timer]
+OnBootSec=30
+OnUnitActiveSec=30
+
+[Install]
+WantedBy=timers.target

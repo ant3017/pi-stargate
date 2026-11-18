@@ -1,0 +1,15 @@
+# pi-config: ap0 <-> wh0 forwarding + NAT, loaded by netfilter-persistent
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+-A FORWARD -i ap0 -o wh0 -j ACCEPT
+-A FORWARD -i wh0 -o ap0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+COMMIT
+*nat
+:PREROUTING ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+-A POSTROUTING -o wh0 -j MASQUERADE
+COMMIT

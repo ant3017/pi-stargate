@@ -1,0 +1,16 @@
+network:
+  version: 2
+  renderer: networkd
+  wifis:
+    wlan0:
+      dhcp4: true
+      nameservers:
+        addresses: [1.1.1.1, 8.8.8.8]
+      access-points:
+        "YourRouterSSID":
+          password: "your-router-password"
+          band: 2.4GHz
+        # add more networks the same way — band: 2.4GHz is REQUIRED
+        # "AnotherNetwork":
+        #   password: "pass"
+        #   band: 2.4GHz

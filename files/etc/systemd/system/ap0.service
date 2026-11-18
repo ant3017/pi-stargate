@@ -1,0 +1,15 @@
+[Unit]
+Description=Virtual AP interface on wlan0
+After=sys-subsystem-net-devices-wlan0.device
+Before=hostapd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/iw dev wlan0 interface add ap0 type __ap
+ExecStartPost=/usr/sbin/ip link set ap0 up
+ExecStartPost=/usr/sbin/ip address add 192.168.50.1/24 dev ap0
+RemainAfterExit=yes
+ExecStop=/usr/sbin/iw dev ap0 del
+
+[Install]
+WantedBy=multi-user.target

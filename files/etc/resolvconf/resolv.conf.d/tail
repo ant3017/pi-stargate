@@ -1,0 +1,4 @@
+# Appended verbatim to /etc/resolv.conf by Debian resolvconf.
+# openresolv ignores resolv.conf.d/ — the real pin there is
+# name_servers= in /etc/resolvconf.conf (set by install.sh).
+nameserver 1.1.1.1

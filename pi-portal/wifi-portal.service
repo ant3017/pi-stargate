@@ -1,0 +1,13 @@
+[Unit]
+Description=WiFi provisioning captive portal (ap0)
+After=network.target ap0.service
+Wants=ap0.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/local/sbin/wifi_portal.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
