@@ -4,6 +4,7 @@ etc/hostapd/hostapd.conf 644
 etc/default/hostapd 644
 etc/systemd/system/hostapd.service.d/override.conf 644
 etc/dnsmasq.d/ap0.conf 644
+etc/dnsmasq.d/usb0.conf 644
 etc/systemd/system/ap0.service 644
 etc/systemd/system/watch-ap-channel.service 644
 etc/systemd/system/watch-ap-channel.timer 644
