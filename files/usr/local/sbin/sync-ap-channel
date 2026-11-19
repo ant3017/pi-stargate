@@ -1,5 +1,5 @@
 #!/bin/bash
-# Sync ap0's hostapd channel and country code to match wlan0.
+# Sync ap0's hostapd channel to wlan0 and country code to the system domain.
 # When wlan0 is on 2.4GHz, syncs AP channel + country code to match.
 # When wlan0 is not on 2.4GHz (e.g. uplink via eth0 or unassociated),
 # sets AP to channel 11 (default 2.4GHz) and brings AP up.
@@ -7,30 +7,36 @@
 #               systemctl would recurse — NEVER call 'systemctl restart
 #               hostapd' from inside hostapd.service's ExecStartPre).
 
+CONFIG=/etc/hostapd/hostapd.conf
 CHAN=$(iw dev wlan0 info 2>/dev/null | awk '/channel/{print $2; exit}')
-COUNTRY=$(iw phy phy0 info 2>/dev/null | awk '/country/{print $2; exit}')
+COUNTRY=$(iw reg get 2>/dev/null | sed -n 's/^country \([A-Z][A-Z]\):.*/\1/p' | head -n 1)
+if [ "$COUNTRY" = "00" ] || [ "$COUNTRY" = "99" ]; then
+    COUNTRY=
+fi
+CHANGED=0
 
 if [ -z "$CHAN" ] || [ "$CHAN" -gt 13 ]; then
     echo "sync-ap-channel: wlan0 not on 2.4GHz (chan=${CHAN:-none}), using channel 11"
-    sed -i "s/^channel=.*/channel=11/" /etc/hostapd/hostapd.conf
-    if [ -n "$COUNTRY" ]; then
-        sed -i "s/^country_code=.*/country_code=$COUNTRY/" /etc/hostapd/hostapd.conf
-    fi
-    if [ "$1" != "--no-restart" ]; then
-        systemctl restart hostapd
-    fi
-    echo "sync-ap-channel: hostapd.conf channel set to 11 (default 2.4GHz)"
-    exit 0
+    CHAN=11
 fi
 
-sed -i "s/^channel=.*/channel=$CHAN/" /etc/hostapd/hostapd.conf
+if ! grep -qx "channel=$CHAN" "$CONFIG"; then
+    sed -i "s/^channel=.*/channel=$CHAN/" "$CONFIG"
+    CHANGED=1
+fi
 
-if [ -n "$COUNTRY" ]; then
-    sed -i "s/^country_code=.*/country_code=$COUNTRY/" /etc/hostapd/hostapd.conf
+if [ -n "$COUNTRY" ] && ! grep -qx "country_code=$COUNTRY" "$CONFIG"; then
+    sed -i "s/^country_code=.*/country_code=$COUNTRY/" "$CONFIG"
+    CHANGED=1
 fi
 
 if [ "$1" = "--no-restart" ]; then
     echo "sync-ap-channel: hostapd.conf channel set to $CHAN (no restart)"
+    exit 0
+fi
+
+if [ "$CHANGED" -eq 0 ]; then
+    echo "sync-ap-channel: configuration unchanged; hostapd not restarted"
     exit 0
 fi
 
