@@ -57,7 +57,7 @@ same files = same result, services get re-enabled.
 - `etc/dnsmasq.d/ap0.conf` + `usb0.conf` — DHCP + DNS for AP clients and USB gadget clients; `bind-dynamic` allows dnsmasq to start before either interface appears
 - `etc/sysctl.d/90-bridge.conf` — `ip_forward=1`
 - `etc/NetworkManager/conf.d/99-unmanaged-wlan.conf` — NetworkManager hands off wlan0/ap0
-- `etc/wireguard/wh0.conf` + `wg-quick@wh0` — tunnel; `AllowedIPs=0.0.0.0/0` puts ALL routed traffic (Pi + forwarded ap0 clients) through `wh0` regardless of which uplink (wlan0/eth0) carries it
+- `etc/wireguard/wh0.conf` + `wg-quick@wh0` — tunnel; `AllowedIPs=0.0.0.0/0` routes AP client traffic through `wh0`, while UDP to the WireGuard server port 55001 is marked to bypass this tunnel and masqueraded over the physical uplink so a client can establish its own tunnel to that server
 - `usr/local/sbin/sync-ap-channel` + `watch-ap-channel` + `.timer` — AP channel auto-follows wlan0's channel
 - `etc/networkd-dispatcher/routable.d/50-ap-channel` — instant channel re-sync on association
 - `usr/local/sbin/wifi_portal.py` + `wifi-portal.service` — captive provisioning portal on `http://192.168.50.1/` (from `pi-portal/`)
